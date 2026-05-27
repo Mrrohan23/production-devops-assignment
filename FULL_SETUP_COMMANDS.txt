@@ -1,0 +1,56 @@
+STEP 1 - Install Docker
+
+sudo apt update
+sudo apt install docker.io docker-compose unzip -y
+
+STEP 2 - Enable Docker
+
+sudo systemctl enable docker
+sudo systemctl start docker
+
+STEP 3 - Add Docker Permission
+
+sudo usermod -aG docker $USER
+newgrp docker
+
+STEP 4 - Install Ollama
+
+curl -fsSL https://ollama.com/install.sh | sh
+
+STEP 5 - Pull AI Model
+
+ollama run tinyllama
+
+STEP 6 - Run Application
+
+docker-compose up -d --build
+
+STEP 7 - Install Cloudflare Tunnel
+
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+
+sudo dpkg -i cloudflared-linux-amd64.deb
+
+STEP 8 - Login Cloudflare
+
+cloudflared tunnel login
+
+STEP 9 - Create Tunnel
+
+cloudflared tunnel create devops-assignment
+
+STEP 10 - Configure Tunnel
+
+nano ~/.cloudflared/config.yml
+
+STEP 11 - Create DNS
+
+cloudflared tunnel route dns devops-assignment ai.yourdomain.com
+
+STEP 12 - Run Tunnel
+
+cloudflared tunnel run devops-assignment
+
+STEP 13 - Open Public URL
+
+https://ai.yourdomain.com

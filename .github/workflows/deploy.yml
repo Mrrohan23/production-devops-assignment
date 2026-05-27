@@ -1,0 +1,146 @@
+name: Production AI DevOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  APP_IMAGE: production-ai-app
+  COMPOSE_FILE: docker-compose.yml
+
+jobs:
+
+  validate:
+
+    name: Validate Configuration
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Validate Environment File
+        run: |
+          test -f .env || exit 1
+
+      - name: Validate NGINX Configuration
+        run: |
+          docker run --rm \
+          -v $(pwd)/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro \
+          nginx:latest nginx -t
+
+  build:
+
+    name: Build Infrastructure
+
+    runs-on: ubuntu-latest
+
+    needs: validate
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Application Containers
+        run: |
+          docker compose build
+
+      - name: Verify Docker Images
+        run: docker images
+
+  test:
+
+    name: Infrastructure Testing
+
+    runs-on: ubuntu-latest
+
+    needs: build
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Start Infrastructure Stack
+        run: |
+          docker compose up -d
+
+      - name: Wait For Services Startup
+        run: sleep 40
+
+      - name: Verify Running Containers
+        run: docker ps
+
+      - name: Test FastAPI Health Endpoint
+        run: |
+          docker exec fastapi_app \
+          curl -f http://localhost:8000/health
+
+      - name: Test FastAPI Metrics Endpoint
+        run: |
+          docker exec fastapi_app \
+          curl -f http://localhost:8000/metrics
+
+      - name: Test NGINX Reverse Proxy
+        run: |
+          docker exec nginx_proxy \
+          curl -f http://localhost
+
+      - name: Test Prometheus Service
+        run: |
+          docker exec prometheus_monitor \
+          wget -qO- http://localhost:9090
+
+      - name: Test Grafana Service
+        run: |
+          docker exec grafana_dashboard \
+          wget -qO- http://localhost:3000/login
+
+      - name: Collect Container Logs
+        if: always()
+        run: |
+          docker logs fastapi_app
+          docker logs nginx_proxy
+          docker logs prometheus_monitor
+
+      - name: Shutdown Infrastructure
+        if: always()
+        run: docker compose down
+
+  deploy:
+
+    name: Production Deployment Simulation
+
+    runs-on: ubuntu-latest
+
+    needs: test
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Simulate Production Deployment
+        run: |
+          echo "Deploying Production AI Infrastructure"
+
+      - name: Deployment Summary
+        run: |
+          echo "Production deployment completed successfully"
+
+      - name: Deployment Validation
+        run: |
+          echo "Infrastructure healthy"
+          echo "Monitoring stack healthy"
+          echo "Reverse proxy healthy"
+          echo "CI/CD pipeline successful"

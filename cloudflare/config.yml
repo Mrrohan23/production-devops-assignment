@@ -1,0 +1,8 @@
+tunnel: devops-assignment
+credentials-file: /home/rohan/.cloudflared/cce6c5fd-13fe-4311-b7c9-c58a0212d8cd.json
+
+ingress:
+  - hostname: ai.3sdaevds.in
+    service: http://localhost:80
+
+  - service: http_status:404
